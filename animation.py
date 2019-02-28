@@ -11,11 +11,11 @@ class Hero:
         self.y = 100
         self.dir = 0
         self.r = 30
+        self.speed = 1
         self.dx = sin(self.dir * pi / 180)
         self.dy = cos(self.dir * pi / 180)
 
         self.color = arcade.color.RED
-
 
     def turn_left(self):
         self.dir -= 5
@@ -33,14 +33,22 @@ class Hero:
             self.dx = sin(self.dir * pi / 180)
             self.dy = cos(self.dir * pi / 180)
 
-        if self.y > SCREEN_HEIGHT - self.r and self.y < self.r:
-            self.dir -= 180
+        if self.y > SCREEN_HEIGHT - self.r or self.y < self.r:
+            self.dir = 180 - self.dir
             self.dx = sin(self.dir * pi / 180)
             self.dy = cos(self.dir * pi / 180)
-        print(self.dir, self.y)
+        # print(self.dir, self.y)
 
-        self.y += self.dy
-        self.x += self.dx
+        self.y += self.dy * self.speed
+        self.x += self.dx * self.speed
+
+    def speed_up(self):
+        if 0 <= self.speed < 10:
+            self.speed += 1
+
+    def speed_down(self):
+        if 1 <= self.speed <= 10:
+            self.speed -= 1
 
     def draw(self):
         arcade.draw_circle_filled(self.x, self.y, self.r, self.color)
@@ -48,6 +56,13 @@ class Hero:
         x2 = x1 + self.r * 1.3 * self.dx
         y2 = y1 + self.r * 1.3 * self.dy
         arcade.draw_line(x1, y1, x2, y2, arcade.color.BLACK, 4)
+
+    def get_telemetry(self):
+        st = 'x = {} \ny = {} \n'.format(self.x // 1, self.y // 1) + 'dir = {} \n'.format(self.dir) + 'speed = {} \n'.format(self.speed)
+
+
+        return st
+
 
 class MyGame(arcade.Window):
     """ Главный класс приложения. """
@@ -64,17 +79,21 @@ class MyGame(arcade.Window):
         """ Отрендерить этот экран. """
         arcade.start_render()
         self.hero.draw()
+        arcade.draw_text(self.hero.get_telemetry(), 10, 100, [0, 240, 0])
         # Здесь код рисунка
 
     def on_key_press(self, key, modifiers):
         """Вызывается при нажатии пользователем клавиши"""
 
-        if key == arcade.key.LEFT:
+        if key == arcade.key.MOTION_LEFT:
             self.hero.turn_left()
-        elif key == arcade.key.RIGHT:
+        elif key == arcade.key.MOTION_RIGHT:
             self.hero.turn_right()
         elif key == arcade.key.UP:
-            self.hero.move()
+            self.hero.speed_up()
+        elif key == arcade.key.DOWN:
+            self.hero.speed_down()
+        print(self.hero.speed)
 
 
     def update(self, delta_time):
