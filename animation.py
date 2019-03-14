@@ -9,6 +9,32 @@ SCREEN_HEIGHT = 600
 def get_distance(hero1, hero2):
     return ((hero1.x - hero2.x) ** 2 + (hero1.y - hero2.y) ** 2) ** 0.5
 
+class Bullet:
+    def __init__(self, x, y, dx, dy):
+        self.x = x
+        self.y = y
+        self.speed = 3
+        self.dx = dx * self.speed
+        self.dy = dy * self.speed
+        self.color = [10, 10, 10]
+
+    def draw(self):
+        arcade.draw_line(self.x, self.y,
+                         self.x + self.dx * 5,
+                         self.y + self.dy * 5,
+                         self.color, 4)
+
+    def move(self):
+        self.x += self.dx * self.speed
+        self.y += self.dy * self.speed
+
+    def is_removeble(self):
+        out_x = not 0 < self.x < SCREEN_WIDTH
+        out_y = not 0 < self.y < SCREEN_HEIGHT
+        return out_x or out_y
+
+    def is_hit(self, hero):
+        return get_distance(self, hero) <= hero.r
 
 class Hero:
     def __init__(self, color=arcade.color.RED, size=30):
@@ -75,7 +101,9 @@ class Hero:
         arcade.draw_line(x1, y1, x2, y2, arcade.color.BLACK, 4)
 
     def get_telemetry(self):
-        st = 'x = {} \ny = {} \n'.format(self.x // 1, self.y // 1) + 'dir = {} \n'.format(self.dir) + 'speed = {} \n'.format(self.speed)
+        st = 'x = {} \ny = {} \n'.format(self.x // 1, self.y // 1) + \
+             'dir = {} \n'.format(self.dir) + \
+             'speed = {} \n'.format(self.speed)
 
         return st
 
@@ -90,9 +118,17 @@ class MyGame(arcade.Window):
         # Настроить игру здесь
         self.hero = Hero()
         self.enemy_list = []
+        self.bullet_list = []
         for i in range(20):
             self.enemy_list.append(Hero(color=arcade.color.BLUE, size=10))
 
+    def get_telemetry(self):
+        st = 'x = {} \ny = {} \n'.format(self.hero.x // 1, self.hero.y // 1) + \
+             'dir = {} \n'.format(self.hero.dir) + \
+             'speed = {} \n'.format(self.hero.speed) + \
+             'count bullets = {}\n'.format(len(self.bullet_list)) + \
+             'count enemy = {}\n'.format(len(self.enemy_list))
+        return st
 
     def on_draw(self):
         """ Отрендерить этот экран. """
@@ -102,7 +138,9 @@ class MyGame(arcade.Window):
             enemy.draw()
             arcade.draw_line(self.hero.x, self.hero.y, enemy.x, enemy.y, [50, 50, 50])
             arcade.draw_text(str(get_distance(self.hero, enemy) // 1), enemy.x + 20, enemy.y + 20, [90,90,90])
-        arcade.draw_text(self.hero.get_telemetry(), 10, 100, [0, 240, 0])
+        for bullet in self.bullet_list:
+            bullet.draw()
+        arcade.draw_text(self.get_telemetry(), 10, 100, [0, 240, 0])
         # Здесь код рисунка
 
     def on_key_press(self, key, modifiers):
@@ -116,6 +154,10 @@ class MyGame(arcade.Window):
             self.hero.speed_up()
         elif key == arcade.key.DOWN:
             self.hero.speed_down()
+        elif key == arcade.key.SPACE:
+            self.bullet_list.append(Bullet(self.hero.x + self.hero.dx * self.hero.r,
+                                           self.hero.y + self.hero.dy * self.hero.r,
+                                           self.hero.dx, self.hero.dy))
         print(self.hero.speed)
 
 
@@ -124,6 +166,16 @@ class MyGame(arcade.Window):
         self.hero.move()
         for enemy in self.enemy_list:
             enemy.move()
+
+        for bullet in self.bullet_list:
+            bullet.move()
+            if bullet.is_removeble():
+                self.bullet_list.remove(bullet)
+            for enemy in self.enemy_list:
+                if bullet.is_hit(enemy):
+                    self.bullet_list.remove(bullet)
+                    self.enemy_list.remove(enemy)
+
 
         for enemy in self.enemy_list:
             if self.hero.it_crach(enemy):
