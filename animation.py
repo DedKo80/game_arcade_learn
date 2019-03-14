@@ -1,21 +1,29 @@
 import arcade
+import random
 from math import pi, cos, sin
+
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
+def get_distance(hero1, hero2):
+    return ((hero1.x - hero2.x) ** 2 + (hero1.y - hero2.y) ** 2) ** 0.5
+
 
 class Hero:
-    def __init__(self):
-        self.x = 100
-        self.y = 100
-        self.dir = 0
-        self.r = 30
+    def __init__(self, color=arcade.color.RED, size=30):
+        self.x = random.randint(100, 700)
+        self.y = random.randint(100, 500)
+        self.dir = random.randint(0, 360)
+        self.r = size
         self.speed = 1
         self.dx = sin(self.dir * pi / 180)
         self.dy = cos(self.dir * pi / 180)
 
-        self.color = arcade.color.RED
+        self.color = color
+
+    def it_crach(self, hero):
+        return get_distance(self, hero) <= self.r + hero.r
 
     def turn_left(self):
         self.dir -= 5
@@ -39,6 +47,15 @@ class Hero:
             self.dy = cos(self.dir * pi / 180)
         # print(self.dir, self.y)
 
+        if self.x > SCREEN_WIDTH - self.r:
+            self.x = SCREEN_WIDTH - self.r
+        if self.x < self.r:
+            self.x = self.r
+        if self.y > SCREEN_HEIGHT - self.r:
+            self.y = SCREEN_HEIGHT- self.r
+        if self.y < self.r:
+            self.y = self.r
+            
         self.y += self.dy * self.speed
         self.x += self.dx * self.speed
 
@@ -60,7 +77,6 @@ class Hero:
     def get_telemetry(self):
         st = 'x = {} \ny = {} \n'.format(self.x // 1, self.y // 1) + 'dir = {} \n'.format(self.dir) + 'speed = {} \n'.format(self.speed)
 
-
         return st
 
 
@@ -73,12 +89,19 @@ class MyGame(arcade.Window):
     def setup(self):
         # Настроить игру здесь
         self.hero = Hero()
-        pass
+        self.enemy_list = []
+        for i in range(20):
+            self.enemy_list.append(Hero(color=arcade.color.BLUE, size=10))
+
 
     def on_draw(self):
         """ Отрендерить этот экран. """
         arcade.start_render()
         self.hero.draw()
+        for enemy in self.enemy_list:
+            enemy.draw()
+            arcade.draw_line(self.hero.x, self.hero.y, enemy.x, enemy.y, [50, 50, 50])
+            arcade.draw_text(str(get_distance(self.hero, enemy) // 1), enemy.x + 20, enemy.y + 20, [90,90,90])
         arcade.draw_text(self.hero.get_telemetry(), 10, 100, [0, 240, 0])
         # Здесь код рисунка
 
@@ -99,14 +122,15 @@ class MyGame(arcade.Window):
     def update(self, delta_time):
         """ Здесь вся игровая логика и логика перемещения."""
         self.hero.move()
-        # self.hero.turn_right()
-        pass
+        for enemy in self.enemy_list:
+            enemy.move()
 
-
-        # elif key == arcade.key.LEFT:
-        #     self.player_sprite.change_x = -MOVEMENT_SPEED
-        # elif key == arcade.key.RIGHT:
-        #     self.player_sprite.change_x = MOVEMENT_SPEED
+        for enemy in self.enemy_list:
+            if self.hero.it_crach(enemy):
+                self.hero.r += 2
+                self.enemy_list.remove(enemy)
+            pass
+            # self.hero.turn_right()
 
 
 def main():
